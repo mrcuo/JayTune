@@ -1,0 +1,28 @@
+name: JayTune
+options:
+  bundleIdPrefix: com.jaytune
+  deploymentTarget:
+    macOS: "14.0"
+  swiftVersion: "5.9"
+targets:
+  JayTune:
+    type: application
+    platform: macOS
+    sources: JayTune
+    resources:
+      - path: JayTune/Tools
+        type: folder
+    settings:
+      INFOPLIST_FILE: JayTune/Info.plist
+      PRODUCT_BUNDLE_IDENTIFIER: com.jaytune.JayTune
+      PRODUCT_NAME: JayTune
+      SWIFT_VERSION: 5.9
+      MACOSX_DEPLOYMENT_TARGET: 14.0
+    entitlements:
+      path: JayTune/JayTune.entitlements
+  JayTuneTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: JayTuneTests
+    dependencies:
+      - target: JayTune

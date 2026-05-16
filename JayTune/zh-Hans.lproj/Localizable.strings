@@ -1,0 +1,115 @@
+/* === 侧边栏 === */
+"sidebar.all_songs" = "全部歌曲";
+"sidebar.recently_added" = "最近添加";
+"sidebar.albums" = "专辑";
+"sidebar.artists" = "艺术家";
+"sidebar.playlists" = "播放列表";
+"sidebar.category" = "分类";
+
+/* === 设备状态 === */
+"device.connected" = "已连接";
+"device.disconnected" = "未连接";
+"device.not_connected" = "设备未连接";
+"device.detecting" = "正在检测设备...";
+"device.not_found" = "未找到设备，请连接 iPod touch 或开启 WiFi 同步";
+"device.not_found_detail" = "未找到 iPod touch，请确认已连接并信任此电脑";
+"device.not_found_wifi_hint" = "未找到设备 — 请确认：\n  • iPod touch 与电脑在同一 WiFi\n  • 已在 iTunes/Finder 中开启「通过 Wi-Fi 同步」\n  • 或使用 USB 线连接";
+"device.title" = "设备";
+"device.switch" = "切换设备";
+"device.picker_title" = "选择设备";
+"device.picker_hint" = "请选择要管理的 iPod 设备";
+"device.found_count" = "发现 %d 台设备";
+"device.multiple_found" = "发现 %d 台设备，请选择";
+"device.no_music" = "未找到音乐文件";
+"device.scanning" = "正在扫描音乐库（%@ 个目录）…";
+"device.scan_progress" = "已扫描 %1$d/%2$d 个目录，%3$d 首歌曲";
+"device.scan_complete" = "%1$@ · %2$d 首歌曲";
+
+/* === 工具栏 === */
+"toolbar.search_placeholder" = "搜索歌曲、艺术家、专辑…";
+"toolbar.import" = "导入";
+"toolbar.import_failed" = "导入失败";
+"toolbar.refresh" = "刷新设备";
+"toolbar.export" = "导出";
+"toolbar.export_help" = "导出选中歌曲到电脑";
+"toolbar.delete" = "删除";
+"toolbar.delete_help" = "删除 %d 首选中的歌曲";
+
+/* === 内容区 === */
+"content.no_playlists" = "暂无播放列表";
+"album.track_count" = "%@ 首";
+"album.back_to_list" = "返回专辑列表";
+"artist.back_to_list" = "返回艺术家列表";
+"common.back" = "返回";
+
+/* === 导入 === */
+"import.unknown_artist" = "未知艺术家";
+"import.unknown_album" = "未知专辑";
+
+/* === 导出 === */
+"export.pick_folder" = "选择导出目录";
+"export.select" = "导出";
+"export.hint" = "选择一个文件夹来保存导出的歌曲";
+"export.progress" = "正在导出：%@…";
+"export.complete" = "✅ 导出完成：%@";
+"export.failed" = "❌ 导出失败：%@";
+"export.batch_progress" = "导出中（%d/%d）：%@…";
+"export.batch_complete" = "✅ 已导出 %d 首歌曲";
+
+/* === 删除 === */
+"delete.confirm_title" = "确认删除";
+"delete.confirm_action" = "删除";
+"delete.confirm_message_single" = "确定要删除「%@」吗？此操作不可撤销。";
+"delete.confirm_message_multi" = "确定要删除这 %d 首歌曲吗？此操作不可撤销。";
+"common.cancel" = "取消";
+"delete.progress" = "删除中（%d/%d）：%@…";
+"delete.complete" = "已删除 %d 首歌曲";
+
+/* === 右键菜单 === */
+"context.export" = "导出歌曲";
+"context.delete" = "删除歌曲";
+"context.copy_info" = "复制曲目信息";
+
+/* === 应用名称与菜单栏 === */
+"app.name" = "JayTune";
+"app.menu.about" = "关于 JayTune";
+"app.menu.preferences" = "偏好设置…";
+"app.menu.quit" = "退出 JayTune";
+
+/* === 文件菜单 === */
+"menu.file" = "文件";
+"menu.import_media" = "导入媒体文件…";
+"menu.close_window" = "关闭窗口";
+
+/* === 编辑菜单 === */
+"menu.edit" = "编辑";
+"menu.undo" = "撤销";
+"menu.redo" = "重做";
+"menu.cut" = "剪切";
+"menu.copy" = "复制";
+"menu.paste" = "粘贴";
+"menu.select_all" = "全选";
+
+/* === 显示菜单 === */
+"menu.view" = "显示";
+"menu.toolbar" = "工具栏";
+"menu.sidebar" = "侧边栏";
+
+/* === 帮助菜单 === */
+"menu.help" = "帮助";
+"menu.website" = "JayTune 网站";
+"menu.language" = "语言 / Language";
+
+/* === 设置面板 === */
+"settings.title" = "偏好设置";
+"settings.language" = "语言";
+"settings.auto_detect" = "跟随系统";
+"settings.restart_hint" = "部分界面需要重启应用后生效";
+"settings.connection" = "连接方式";
+"settings.wifi_mode" = "WiFi 无线连接模式";
+"settings.wifi_hint" = "WiFi 模式无需 USB 线缆，但速度较慢。设备需与电脑在同一 WiFi 网络。";
+
+/* === 关于 === */
+"about.title" = "关于 JayTune";
+"about.version" = "版本";
+"about.description" = "iPod touch 音乐管理工具\n通过 AFC 协议读取和管理音乐库";

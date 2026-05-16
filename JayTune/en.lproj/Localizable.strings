@@ -1,0 +1,115 @@
+/* === Sidebar === */
+"sidebar.all_songs" = "All Songs";
+"sidebar.recently_added" = "Recently Added";
+"sidebar.albums" = "Albums";
+"sidebar.artists" = "Artists";
+"sidebar.playlists" = "Playlists";
+"sidebar.category" = "Library";
+
+/* === Device Status === */
+"device.connected" = "Connected";
+"device.disconnected" = "Disconnected";
+"device.not_connected" = "No Device";
+"device.detecting" = "Detecting device...";
+"device.not_found" = "No device found, connect iPod touch or enable WiFi sync";
+"device.not_found_detail" = "iPod touch not found. Please connect and trust this computer.";
+"device.not_found_wifi_hint" = "No device found — please check:\n  • iPod touch is on the same WiFi network\n  • Wi-Fi sync is enabled in iTunes/Finder settings\n  • Or connect via USB cable";
+"device.title" = "Devices";
+"device.switch" = "Switch Device";
+"device.picker_title" = "Select Device";
+"device.picker_hint" = "Select the iPod to manage";
+"device.found_count" = "Found %d device(s)";
+"device.multiple_found" = "Found %d devices, please select";
+"device.no_music" = "No music files found";
+"device.scanning" = "Scanning music library (%@ directories)...";
+"device.scan_progress" = "Scanned %1$d/%2$d directories, %3$d tracks";
+"device.scan_complete" = "%1$@ · %2$d tracks";
+
+/* === Toolbar === */
+"toolbar.search_placeholder" = "Search songs, artists, albums...";
+"toolbar.import" = "Import";
+"toolbar.import_failed" = "Import failed";
+"toolbar.refresh" = "Refresh Device";
+"toolbar.export" = "Export";
+"toolbar.export_help" = "Export selected tracks to computer";
+"toolbar.delete" = "Delete";
+"toolbar.delete_help" = "Delete %d selected track(s)";
+
+/* === Content Area === */
+"content.no_playlists" = "No Playlists";
+"album.track_count" = "%@ tracks";
+"album.back_to_list" = "Back to Albums";
+"artist.back_to_list" = "Back to Artists";
+"common.back" = "Back";
+
+/* === Import === */
+"import.unknown_artist" = "Unknown Artist";
+"import.unknown_album" = "Unknown Album";
+
+/* === Export === */
+"export.pick_folder" = "Choose Export Folder";
+"export.select" = "Export";
+"export.hint" = "Select a folder for exported songs";
+"export.progress" = "Exporting: %@…";
+"export.complete" = "\u{2705} Export complete: %@";
+"export.failed" = "\u{274C} Export failed: %@";
+"export.batch_progress" = "Exporting (%d/%d): %@\u{2026}";
+"export.batch_complete" = "\u{2705} Exported %d tracks";
+
+/* === Delete === */
+"delete.confirm_title" = "Confirm Delete";
+"delete.confirm_action" = "Delete";
+"delete.confirm_message_single" = "Are you sure you want to delete \"%@\"? This cannot be undone.";
+"delete.confirm_message_multi" = "Are you sure you want to delete these %d songs? This cannot be undone.";
+"common.cancel" = "Cancel";
+"delete.progress" = "Deleting (%d/%d): %@\u{2026}";
+"delete.complete" = "Deleted %d track(s)";
+
+/* === Context Menu === */
+"context.export" = "Export Song";
+"context.delete" = "Delete Song";
+"context.copy_info" = "Copy Track Info";
+
+/* === App Name & Menu Bar === */
+"app.name" = "JayTune";
+"app.menu.about" = "About JayTune";
+"app.menu.preferences" = "Preferences\u{2026}";
+"app.menu.quit" = "Quit JayTune";
+
+/* === File Menu === */
+"menu.file" = "File";
+"menu.import_media" = "Import Media\u{2026}";
+"menu.close_window" = "Close Window";
+
+/* === Edit Menu === */
+"menu.edit" = "Edit";
+"menu.undo" = "Undo";
+"menu.redo" = "Redo";
+"menu.cut" = "Cut";
+"menu.copy" = "Copy";
+"menu.paste" = "Paste";
+"menu.select_all" = "Select All";
+
+/* === View Menu === */
+"menu.view" = "View";
+"menu.toolbar" = "Toolbar";
+"menu.sidebar" = "Sidebar";
+
+/* === Help Menu === */
+"menu.help" = "Help";
+"menu.website" = "JayTune Website";
+"menu.language" = "Language";
+
+/* === Settings Panel === */
+"settings.title" = "Preferences";
+"settings.language" = "Language";
+"settings.auto_detect" = "System Default";
+"settings.restart_hint" = "Some UI elements require restart to take effect";
+"settings.connection" = "Connection";
+"settings.wifi_mode" = "WiFi Wireless Mode";
+"settings.wifi_hint" = "WiFi mode works without USB cable but is slower. Device must be on the same WiFi network.";
+
+/* === About === */
+"about.title" = "About JayTune";
+"about.version" = "Version";
+"about.description" = "iPod touch Music Manager\nManage music library via AFC protocol";

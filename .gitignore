@@ -1,0 +1,19 @@
+# Swift / Xcode
+.build/
+DerivedData/
+*.xcuserstate
+PkgInfo
+.swiftpm/
+
+# App bundle
+*.app/
+
+# macOS
+.DS_Store
+
+# Temporary fixes (system headers)
+swift_fixed/
+
+# Build script outputs
+*.ipa
+*.dSYM.zip
