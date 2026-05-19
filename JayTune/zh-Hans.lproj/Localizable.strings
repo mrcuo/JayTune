@@ -21,7 +21,7 @@
 "device.found_count" = "发现 %d 台设备";
 "device.multiple_found" = "发现 %d 台设备，请选择";
 "device.no_music" = "未找到音乐文件";
-"device.scanning" = "正在扫描音乐库（%@ 个目录）…";
+"device.scanning" = "正在扫描音乐库（%d 个目录）…";
 "device.scan_progress" = "已扫描 %1$d/%2$d 个目录，%3$d 首歌曲";
 "device.scan_complete" = "%1$@ · %2$d 首歌曲";
 
@@ -30,6 +30,7 @@
 "toolbar.import" = "导入";
 "toolbar.import_failed" = "导入失败";
 "toolbar.refresh" = "刷新设备";
+"toolbar.cancel_scan" = "取消扫描";
 "toolbar.export" = "导出";
 "toolbar.export_help" = "导出选中歌曲到电脑";
 "toolbar.delete" = "删除";
@@ -37,7 +38,7 @@
 
 /* === 内容区 === */
 "content.no_playlists" = "暂无播放列表";
-"album.track_count" = "%@ 首";
+"album.track_count" = "%d 首";
 "album.back_to_list" = "返回专辑列表";
 "artist.back_to_list" = "返回艺术家列表";
 "common.back" = "返回";

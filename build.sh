@@ -103,6 +103,19 @@ elif [ -d "$SCRIPT_DIR/$APP_NAME/Assets.xcassets" ]; then
     echo "   ✅ 已打包 Assets.xcassets"
 fi
 
+# 编译 AFC C 工具
+TOOLS_DIR="$SCRIPT_DIR/$APP_NAME/Tools"
+if [ -d "$TOOLS_DIR" ]; then
+    for c_file in "$TOOLS_DIR"/*.c; do
+        [ -f "$c_file" ] || continue
+        tool_name=$(basename "$c_file" .c)
+        echo "   🔧 编译工具: $tool_name"
+        gcc -o "$TOOLS_DIR/$tool_name" "$c_file" \
+            -limobiledevice-1.0 -lplist-2.0 \
+            -I/opt/homebrew/include -L/opt/homebrew/lib 2>/dev/null || echo "   ⚠️  编译 $tool_name 失败（可能已存在二进制）"
+    done
+fi
+
 # 复制 AFC 工具
 if [ -d "$SCRIPT_DIR/$APP_NAME/Tools" ]; then
     cp "$SCRIPT_DIR/$APP_NAME/Tools/"* "$APP_BUNDLE/Contents/Resources/Tools/" 2>/dev/null || true

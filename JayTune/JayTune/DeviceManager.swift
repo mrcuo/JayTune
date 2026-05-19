@@ -7,7 +7,7 @@ private func bootstrapLog(_ msg: String) {
     let line = "[\(Date())] \(msg)\n"
     let fm = FileManager.default
     if fm.fileExists(atPath: path),
-       let fh = try? FileHandle(forWritingAtPath: path) {
+       let fh = FileHandle(forWritingAtPath: path) {
         fh.seekToEndOfFile()
         fh.write(line.data(using: .utf8)!)
         fh.closeFile()
@@ -47,10 +47,20 @@ class DeviceManager: ObservableObject {
     @Published var connectionStatus: String = ""
     @Published var tracks: [MusicTrack] = []
 
-    // 导出/删除状态
+    // 导出/删除/导入状态
     @Published var isBusy: Bool = false
     @Published var busyMessage: String = ""
     @Published var busyProgress: Double = 0
+
+    // 导入状态
+    @Published var isImporting: Bool = false
+
+    // 取消标志
+    @Published var isScanning: Bool = false
+    private var scanCancelled: Bool = false
+
+    // 扫描互斥锁：防止重复触发扫描
+    private var isScanRunning: Bool = false
 
     // 连接模式
     @Published var useWiFi: Bool {
@@ -212,17 +222,50 @@ class DeviceManager: ObservableObject {
         self.loadMusicLibrary()
     }
 
+    // MARK: - 取消当前扫描
+    func cancelScan() {
+        scanCancelled = true
+        // 杀掉卡住的 afc_read2 进程，让扫描线程能快速退出
+        killStaleAfcProcesses()
+    }
+
     // MARK: - 读取音乐库
     func loadMusicLibrary() {
         guard let device = selectedDevice else { return }
+
+        // 扫描互斥：防止重复触发
+        guard !isScanRunning else {
+            bootstrapLog("loadMusicLibrary: 扫描正在进行，跳过")
+            return
+        }
+        isScanRunning = true
+
         let udid = device.udid
         let toolsDir = bundleToolsDir()
         let afcLs = "\(toolsDir)/afc_ls"
-        let afcRead = "\(toolsDir)/afc_read2"
+        let afcHead = "\(toolsDir)/afc_head"
         let ffprobe = "/opt/homebrew/bin/ffprobe"
 
-        DispatchQueue.global(qos: .userInitiated).async {
-            let dirsOutput = self.runCommand(afcLs, args: self.afcArgs([udid, "/iTunes_Control/Music"]))
+        // 杀掉残留的 afc_read2 进程（避免多个进程争抢 AFC 连接）
+        killStaleAfcProcesses()
+
+        // 清理上次扫描残留的临时文件
+        cleanupTempFiles()
+
+        // 重置取消标志
+        scanCancelled = false
+        DispatchQueue.main.async {
+            self.isScanning = true
+        }
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+
+            defer {
+                self.isScanRunning = false
+            }
+
+            let dirsOutput = self.runCommand(afcLs, args: self.afcArgs([udid, "/iTunes_Control/Music"]), timeout: 30)
             let dirs = dirsOutput
                 .components(separatedBy: "\n")
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -232,6 +275,7 @@ class DeviceManager: ObservableObject {
                 DispatchQueue.main.async {
                     self.tracks = []
                     self.connectionStatus = L10n.shared.localized("device.no_music")
+                    self.isScanning = false
                 }
                 return
             }
@@ -242,18 +286,41 @@ class DeviceManager: ObservableObject {
 
             var allTracks: [MusicTrack] = []
 
-            for dir in dirs {
-                let filesOutput = self.runCommand(afcLs, args: self.afcArgs([udid, "/iTunes_Control/Music/\(dir)"]))
+            for (dirIndex, dir) in dirs.enumerated() {
+                // 检查取消
+                if self.scanCancelled {
+                    DispatchQueue.main.async {
+                        self.connectionStatus = L10n.shared.localized("device.scan_complete", device.name, allTracks.count)
+                        self.isScanning = false
+                        self.scanCancelled = false
+                    }
+                    return
+                }
+
+                let filesOutput = self.runCommand(afcLs, args: self.afcArgs([udid, "/iTunes_Control/Music/\(dir)"]), timeout: 30)
                 let files = filesOutput
                     .components(separatedBy: "\n")
                     .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                     .filter { $0.lowercased().hasSuffix(".m4a") || $0.lowercased().hasSuffix(".mp3") }
 
                 for file in files {
+                    // 检查取消
+                    if self.scanCancelled {
+                        DispatchQueue.main.async {
+                            self.connectionStatus = L10n.shared.localized("device.scan_complete", device.name, allTracks.count)
+                            self.isScanning = false
+                            self.scanCancelled = false
+                        }
+                        return
+                    }
+
                     let remotePath = "/iTunes_Control/Music/\(dir)/\(file)"
                     let tmpFile = "/tmp/jaytune_\(UUID().uuidString)"
 
-                    _ = self.runCommand(afcRead, args: self.afcArgs([udid, remotePath]), stdoutPath: tmpFile)
+                    // 扫描时只读文件头 128KB（afc_head），用于 ffprobe 提取元数据
+                    // 128KB 覆盖绝大多数 M4A 的 moov atom 位置（少数文件在 64KB~128KB 之间）
+                    // 完整文件传输仅在导出时通过 afc_read2 进行
+                    _ = self.runCommand(afcHead, args: self.afcArgs(["-b", "131072", udid, remotePath]), stdoutPath: tmpFile, timeout: 15)
 
                     if FileManager.default.fileExists(atPath: tmpFile),
                        let attrs = try? FileManager.default.attributesOfItem(atPath: tmpFile),
@@ -264,8 +331,9 @@ class DeviceManager: ObservableObject {
                             "-print_format", "json",
                             "-show_format",
                             tmpFile
-                        ])
+                        ], timeout: 15)
 
+                        var trackAdded = false
                         if let data = jsonStr.data(using: .utf8),
                            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                            let fmt = json["format"] as? [String: Any],
@@ -291,6 +359,22 @@ class DeviceManager: ObservableObject {
                                 fileSize: fileSize
                             )
                             allTracks.append(track)
+                            trackAdded = true
+                        }
+
+                        // 没有 tags 的曲目也收录（用文件名代替标题）
+                        if !trackAdded {
+                            let title = file.replacingOccurrences(of: "\\.[^.]+$", with: "", options: .regularExpression)
+                            let fileSize = attrs[.size] as? UInt32 ?? 0
+                            let track = MusicTrack(
+                                id: UInt32(allTracks.count + 1),
+                                title: title,
+                                artist: L10n.shared.localized("import.unknown_artist"),
+                                album: L10n.shared.localized("import.unknown_album"),
+                                filePath: remotePath.dropFirst().replacingOccurrences(of: "/", with: ":"),
+                                fileSize: fileSize
+                            )
+                            allTracks.append(track)
                         }
                     }
                     try? FileManager.default.removeItem(atPath: tmpFile)
@@ -298,15 +382,37 @@ class DeviceManager: ObservableObject {
 
                 let completed = allTracks.count
                 DispatchQueue.main.async {
-                    self.connectionStatus = String(format: L10n.shared.localized("device.scan_progress"), dirs.firstIndex(of: dir)! + 1, dirs.count, completed)
+                    self.connectionStatus = String(format: L10n.shared.localized("device.scan_progress"), dirIndex + 1, dirs.count, completed)
                 }
             }
 
             DispatchQueue.main.async {
                 self.tracks = allTracks.sorted { $0.artist == $1.artist ? $0.album < $1.album : $0.artist < $1.artist }
                 self.connectionStatus = String(format: L10n.shared.localized("device.scan_complete"), device.name, allTracks.count)
+                self.isScanning = false
             }
         }
+    }
+
+    // MARK: - 清理残留临时文件
+    private func cleanupTempFiles() {
+        let fm = FileManager.default
+        guard let contents = try? fm.contentsOfDirectory(atPath: "/tmp") else { return }
+        for item in contents where item.hasPrefix("jaytune_") {
+            try? fm.removeItem(atPath: "/tmp/\(item)")
+        }
+    }
+
+    // MARK: - 杀掉残留的 afc_read2 进程
+    private func killStaleAfcProcesses() {
+        // 用 pkill 杀掉所有残留的 afc_read2 进程，避免多个进程争抢 AFC 连接
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+        task.arguments = ["-f", "afc_read2"]
+        task.standardOutput = Pipe()
+        task.standardError = Pipe()
+        try? task.run()
+        task.waitUntilExit()
     }
 
     // MARK: - Helper: 获取 Tools 目录路径
@@ -315,8 +421,8 @@ class DeviceManager: ObservableObject {
         return (bundlePath as NSString).appendingPathComponent("Tools")
     }
 
-    // MARK: - Helper: 运行命令
-    private func runCommand(_ path: String, args: [String], stdoutPath: String? = nil) -> String {
+    // MARK: - Helper: 运行命令（支持超时）
+    private func runCommand(_ path: String, args: [String], stdoutPath: String? = nil, timeout: TimeInterval = 0) -> String {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: path)
         task.arguments = args
@@ -333,7 +439,23 @@ class DeviceManager: ObservableObject {
 
             do {
                 try task.run()
-                task.waitUntilExit()
+
+                if timeout > 0 {
+                    // 带超时的等待
+                    let deadline = Date().addingTimeInterval(timeout)
+                    while task.isRunning && Date() < deadline {
+                        Thread.sleep(forTimeInterval: 0.2)
+                    }
+                    if task.isRunning {
+                        bootstrapLog("runCommand TIMEOUT(\(timeout)s): \(path) \(args)")
+                        task.terminate()
+                        Thread.sleep(forTimeInterval: 0.5)
+                        outHandle.closeFile()
+                        return ""
+                    }
+                } else {
+                    task.waitUntilExit()
+                }
                 outHandle.closeFile()
                 return ""
             } catch {
@@ -348,7 +470,21 @@ class DeviceManager: ObservableObject {
 
             do {
                 try task.run()
-                task.waitUntilExit()
+
+                if timeout > 0 {
+                    let deadline = Date().addingTimeInterval(timeout)
+                    while task.isRunning && Date() < deadline {
+                        Thread.sleep(forTimeInterval: 0.2)
+                    }
+                    if task.isRunning {
+                        bootstrapLog("runCommand TIMEOUT(\(timeout)s): \(path) \(args)")
+                        task.terminate()
+                        Thread.sleep(forTimeInterval: 0.5)
+                        return ""
+                    }
+                } else {
+                    task.waitUntilExit()
+                }
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 return String(data: data, encoding: .utf8) ?? ""
             } catch {
@@ -392,7 +528,10 @@ class DeviceManager: ObservableObject {
 
     func exportTrack(_ track: MusicTrack, to directoryURL: URL) {
         guard let device = selectedDevice else { return }
-        isBusy = true
+
+        DispatchQueue.main.async {
+            self.isBusy = true
+        }
 
         DispatchQueue.global(qos: .userInitiated).async {
             let toolsDir = self.bundleToolsDir()
@@ -400,8 +539,10 @@ class DeviceManager: ObservableObject {
             let remotePath = "/" + track.filePath.replacingOccurrences(of: ":", with: "/")
             let destURL = directoryURL.appendingPathComponent(track.exportFilename)
 
-            self.busyMessage = L10n.shared.localized("export.progress", track.title)
-            self.busyProgress = 0
+            DispatchQueue.main.async {
+                self.busyMessage = L10n.shared.localized("export.progress", track.title)
+                self.busyProgress = 0
+            }
 
             _ = self.runCommand(afcRead, args: self.afcArgs([device.udid, remotePath]), stdoutPath: destURL.path)
 
@@ -421,8 +562,11 @@ class DeviceManager: ObservableObject {
 
     func exportTracks(_ tracksToExport: [MusicTrack], to directoryURL: URL) {
         guard !tracksToExport.isEmpty else { return }
-        isBusy = true
-        busyProgress = 0
+
+        DispatchQueue.main.async {
+            self.isBusy = true
+            self.busyProgress = 0
+        }
 
         DispatchQueue.global(qos: .userInitiated).async {
             for (index, track) in tracksToExport.enumerated() {
@@ -450,13 +594,170 @@ class DeviceManager: ObservableObject {
         }
     }
 
+    // MARK: - ===== 导入功能 =====
+
+    /// 导入本地音乐文件到设备
+    func importTracks(_ urls: [URL]) {
+        guard let device = selectedDevice else {
+            DispatchQueue.main.async {
+                self.busyMessage = L10n.shared.localized("import.no_device")
+                self.isBusy = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.isBusy = false
+                }
+            }
+            return
+        }
+
+        DispatchQueue.main.async {
+            self.isBusy = true
+            self.isImporting = true
+            self.busyProgress = 0
+        }
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+
+            // 1. 递归收集所有 .m4a/.mp3 文件
+            var audioFiles: [URL] = []
+            for url in urls {
+                var isDir: ObjCBool = false
+                if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) {
+                    if isDir.boolValue {
+                        // 递归遍历文件夹
+                        if let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]) {
+                            for case let fileURL as URL in enumerator {
+                                let ext = fileURL.pathExtension.lowercased()
+                                if ext == "m4a" || ext == "mp3" {
+                                    audioFiles.append(fileURL)
+                                }
+                            }
+                        }
+                    } else {
+                        let ext = url.pathExtension.lowercased()
+                        if ext == "m4a" || ext == "mp3" {
+                            audioFiles.append(url)
+                        }
+                    }
+                }
+            }
+
+            guard !audioFiles.isEmpty else {
+                DispatchQueue.main.async {
+                    self.busyMessage = L10n.shared.localized("import.unsupported_format")
+                    self.busyProgress = 1.0
+                    self.isBusy = false
+                    self.isImporting = false
+                }
+                return
+            }
+
+            let toolsDir = self.bundleToolsDir()
+            let afcWrite = "\(toolsDir)/afc_write"
+            let ffprobe = "/opt/homebrew/bin/ffprobe"
+            let udid = device.udid
+            var importedTracks: [MusicTrack] = []
+            var failedCount: Int = 0
+
+            for (index, url) in audioFiles.enumerated() {
+                let progress = Double(index) / Double(audioFiles.count)
+
+                DispatchQueue.main.async {
+                    self.busyMessage = String(format: L10n.shared.localized("import.batch_progress"), index + 1, audioFiles.count, url.lastPathComponent)
+                    self.busyProgress = progress
+                }
+
+                // 2. 用 ffprobe 提取元数据
+                var title: String = url.deletingPathExtension().lastPathComponent
+                var artist: String = L10n.shared.localized("import.unknown_artist")
+                var album: String = L10n.shared.localized("import.unknown_album")
+                var genre: String = ""
+                var durationMs: UInt32 = 0
+                var trackNum: UInt32 = 0
+
+                let jsonStr = self.runCommand(ffprobe, args: [
+                    "-v", "quiet",
+                    "-print_format", "json",
+                    "-show_format",
+                    url.path
+                ], timeout: 15)
+
+                if let data = jsonStr.data(using: .utf8),
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let fmt = json["format"] as? [String: Any] {
+                    if let tags = fmt["tags"] as? [String: String] {
+                        title = tags["title"] ?? title
+                        artist = tags["artist"] ?? artist
+                        album = tags["album"] ?? album
+                        genre = tags["genre"] ?? genre
+                        trackNum = UInt32(tags["track"]?.components(separatedBy: "/").first ?? "0") ?? 0
+                    }
+                    durationMs = UInt32((fmt["duration"] as? Double ?? 0) * 1000)
+                }
+
+                // 3. 生成目标路径
+                let dirIndex = Int.random(in: 0...49)
+                let dirName = String(format: "F%02d", dirIndex)
+                let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                let randomName = String((0..<4).map { _ in letters.randomElement()! })
+                let ext = url.pathExtension.isEmpty ? "m4a" : url.pathExtension.lowercased()
+                let remotePath = "/iTunes_Control/Music/\(dirName)/\(randomName).\(ext)"
+
+                // 4. 调用 afc_write 写入文件
+                let output = self.runCommand(afcWrite, args: self.afcArgs([udid, url.path, remotePath]), timeout: 120)
+
+                // 5. 检查写入结果
+                if output.hasPrefix("OK:") {
+                    // 获取本地文件大小
+                    let fileSize = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? UInt32) ?? 0
+
+                    let filePath = remotePath.dropFirst().replacingOccurrences(of: "/", with: ":")
+                    let track = MusicTrack(
+                        id: UInt32(self.tracks.count + importedTracks.count + 1),
+                        title: title,
+                        artist: artist,
+                        album: album,
+                        genre: genre,
+                        filePath: filePath,
+                        trackNumber: max(1, trackNum),
+                        duration: durationMs,
+                        fileSize: fileSize
+                    )
+                    importedTracks.append(track)
+                } else {
+                    failedCount += 1
+                    bootstrapLog("importTracks: afc_write failed for \(url.lastPathComponent): \(output)")
+                }
+            }
+
+            // 6. 完成：追加到 tracks 数组
+            DispatchQueue.main.async {
+                if !importedTracks.isEmpty {
+                    self.tracks.append(contentsOf: importedTracks)
+                    self.tracks.sort { $0.artist == $1.artist ? $0.album < $1.album : $0.artist < $1.artist }
+                }
+
+                if failedCount == 0 {
+                    self.busyMessage = String(format: L10n.shared.localized("import.complete"), importedTracks.count)
+                } else {
+                    self.busyMessage = String(format: L10n.shared.localized("import.failed"), "导入 \(importedTracks.count) 首成功，\(failedCount) 首失败")
+                }
+                self.busyProgress = 1.0
+                self.isBusy = false
+                self.isImporting = false
+            }
+        }
+    }
+
     // MARK: - ===== 删除功能 =====
 
     func deleteTracks(_ tracksToDelete: [MusicTrack]) {
         guard !tracksToDelete.isEmpty, let device = selectedDevice else { return }
 
-        isBusy = true
-        busyProgress = 0
+        DispatchQueue.main.async {
+            self.isBusy = true
+            self.busyProgress = 0
+        }
 
         DispatchQueue.global(qos: .userInitiated).async {
             let toolsDir = self.bundleToolsDir()

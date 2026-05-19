@@ -202,7 +202,7 @@ final class L10n: ObservableObject {
         "device.picker_hint":        "请选择要管理的 iPod 设备",
         "device.found_count":        "发现 %d 台设备",
         "device.multiple_found":     "发现 %d 台设备，请选择",
-        "device.scanning":           "正在扫描音乐库（%@ 个目录）...",
+        "device.scanning":           "正在扫描音乐库（%d 个目录）…",
         "device.scan_progress":      "已扫描 %d/%d 个目录，%d 首歌曲",
         "device.scan_complete":      "%@ · %d 首歌曲",
 
@@ -211,10 +211,11 @@ final class L10n: ObservableObject {
         "toolbar.import":            "导入",
         "toolbar.import_failed":     "导入失败",
         "toolbar.refresh":           "刷新设备",
+        "toolbar.cancel_scan":       "取消扫描",
 
         // === 内容区 ===
         "content.no_playlists":      "暂无播放列表",
-        "album.track_count":         "%@ 首",
+        "album.track_count":         "%d 首",
         "album.back_to_list":        "返回专辑列表",
         "artist.back_to_list":       "返回艺术家列表",
         "common.back":               "返回",
@@ -222,6 +223,15 @@ final class L10n: ObservableObject {
         // === 导入 ===
         "import.unknown_artist":     "未知艺术家",
         "import.unknown_album":      "未知专辑",
+        "toolbar.import_help":       "导入音乐文件到设备",
+        "import.pick_files":        "选择要导入的音乐文件",
+        "import.progress":          "正在导入：%@",
+        "import.complete":          "✅ 已导入 %d 首歌曲",
+        "import.failed":            "❌ 导入失败：%@",
+        "import.batch_progress":    "导入中 (%d/%d)：%@…",
+        "import.no_device":         "请先连接设备再导入",
+        "import.unsupported_format": "不支持的文件格式，仅支持 .m4a 和 .mp3",
+        "import.drag_hint":         "拖放音乐文件到此处导入",
 
         // === 应用名 ===
         "app.name":                  "JayTune",
@@ -320,19 +330,20 @@ final class L10n: ObservableObject {
         "device.picker_hint":        "Select the iPod to manage",
         "device.found_count":        "Found %d device(s)",
         "device.multiple_found":     "Found %d devices, please select",
-        "device.scanning":           "Scanning music library (%@ directories)...",
+        "device.scanning":           "Scanning music library (%d directories)…",
         "device.scan_progress":      "Scanned %d/%d directories, %d tracks",
-        "device.scan_complete":      "%@ · %@ tracks",
+        "device.scan_complete":      "%@ · %d tracks",
 
         // === Toolbar ===
         "toolbar.search_placeholder": "Search songs, artists, albums...",
         "toolbar.import":            "Import",
         "toolbar.import_failed":     "Import failed",
         "toolbar.refresh":           "Refresh Device",
+        "toolbar.cancel_scan":       "Cancel Scan",
 
         // === Content ===
         "content.no_playlists":      "No Playlists",
-        "album.track_count":         "%@ tracks",
+        "album.track_count":         "%d tracks",
         "album.back_to_list":        "Back to Albums",
         "artist.back_to_list":       "Back to Artists",
         "common.back":               "Back",
@@ -340,6 +351,15 @@ final class L10n: ObservableObject {
         // === Import ===
         "import.unknown_artist":     "Unknown Artist",
         "import.unknown_album":      "Unknown Album",
+        "toolbar.import_help":       "Import music files to device",
+        "import.pick_files":        "Select music files to import",
+        "import.progress":          "Importing: %@",
+        "import.complete":          "✅ Imported %d tracks",
+        "import.failed":            "❌ Import failed: %@",
+        "import.batch_progress":    "Importing (%d/%d): %@…",
+        "import.no_device":         "Please connect a device first",
+        "import.unsupported_format": "Unsupported format, only .m4a and .mp3 are supported",
+        "import.drag_hint":         "Drop music files here to import",
 
         // === App Name ===
         "app.name":                  "JayTune",

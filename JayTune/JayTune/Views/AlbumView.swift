@@ -17,7 +17,7 @@ struct AlbumView: View {
                             Text(album)
                                 .font(.body)
                             Spacer()
-                            Text("\(L10n.shared.localized("album.track_count", tracksForAlbum(album).count))")
+                            Text(L10n.shared.localized("album.track_count", tracksForAlbum(album).count))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }

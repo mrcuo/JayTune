@@ -8,7 +8,6 @@ struct ContentView: View {
     @State private var selectedSidebar: SidebarSelection = .allSongs
     @State private var searchText: String = ""
     @State private var selectedTrackIDs: Set<UInt32> = []
-    @State private var showingImporter: Bool = false
     @State private var showingSettings: Bool = false
     @State private var showingExportPicker: Bool = false
     @State private var showingDeleteConfirm: Bool = false
@@ -121,9 +120,12 @@ struct ContentView: View {
                             .help(l10n.localized("device.switch"))
                         }
 
-                        Button(action: { showingImporter = true }) {
-                            Label(l10n.localized("toolbar.import"), systemImage: "plus")
+                        // 导入按钮
+                        Button(action: { pickFilesToImport() }) {
+                            Label(l10n.localized("toolbar.import"), systemImage: "square.and.arrow.down")
                         }
+                        .disabled(!deviceManager.isConnected || deviceManager.isBusy)
+                        .help(l10n.localized("toolbar.import_help"))
 
                         Button(action: { showingExportPicker = true }) {
                             Label(l10n.localized("toolbar.export"), systemImage: "square.and.arrow.up")
@@ -138,10 +140,16 @@ struct ContentView: View {
                         .keyboardShortcut(.delete, modifiers: [])
                         .help(l10n.localized("toolbar.delete_help", selectedTracks.count))
 
-                        Button(action: { deviceManager.refreshDevices() }) {
-                            Image(systemName: "arrow.clockwise")
+                        Button(action: {
+                            if deviceManager.isScanning {
+                                deviceManager.cancelScan()
+                            } else {
+                                deviceManager.refreshDevices()
+                            }
+                        }) {
+                            Image(systemName: deviceManager.isScanning ? "xmark.circle" : "arrow.clockwise")
                         }
-                        .help(l10n.localized("toolbar.refresh"))
+                        .help(deviceManager.isScanning ? l10n.localized("toolbar.cancel_scan") : l10n.localized("toolbar.refresh"))
 
                         Button(action: { showingSettings = true }) {
                             Image(systemName: "globe")
@@ -230,6 +238,10 @@ struct ContentView: View {
                     .shadow(radius: 8)
                 }
             }
+            .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+                handleDrop(providers: providers)
+                return true
+            }
         }
         .toolbar {
             ToolbarItem(placement: .automatic) {
@@ -299,11 +311,6 @@ struct ContentView: View {
 
         .task {
             deviceManager.refreshDevices()
-        }
-        .onChange(of: deviceManager.isConnected) { _, newValue in
-            if newValue {
-                deviceManager.loadMusicLibrary()
-            }
         }
         .id(l10n.effectiveLanguage)
     }
@@ -385,20 +392,50 @@ struct ContentView: View {
         }
     }
 
-    private func importTrack(at url: URL) {
-        print("Import: \(url.lastPathComponent)")
-        let newTrack = MusicTrack(
-            id: UInt32(deviceManager.tracks.count + 1),
-            title: url.deletingPathExtension().lastPathComponent,
-            artist: l10n.localized("import.unknown_artist"),
-            album: l10n.localized("import.unknown_album"),
-            filePath: "iTunes_Control:Music:F00:\(url.lastPathComponent)",
-            trackNumber: UInt32(deviceManager.tracks.count + 1),
-            duration: 180000,
-            fileSize: 5000000
-        )
-        deviceManager.tracks.append(newTrack)
+    // MARK: - 导入逻辑
+
+    private func pickFilesToImport() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = false
+        panel.allowsMultipleSelection = true
+        panel.title = l10n.localized("import.pick_files")
+        panel.prompt = l10n.localized("toolbar.import")
+
+        // 支持的文件类型
+        panel.allowedContentTypes = [
+            UTType(filenameExtension: "m4a")!,
+            UTType(filenameExtension: "mp3")!,
+        ]
+
+        if panel.runModal() == .OK {
+            deviceManager.importTracks(panel.urls)
+        }
     }
+
+    private func handleDrop(providers: [NSItemProvider]) {
+        guard deviceManager.isConnected else { return }
+        var urls: [URL] = []
+        let group = DispatchGroup()
+
+        for provider in providers {
+            group.enter()
+            provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { data, error in
+                defer { group.leave() }
+                guard let data = data as? Data,
+                      let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
+                urls.append(url)
+            }
+        }
+
+        group.notify(queue: .main) {
+            if !urls.isEmpty {
+                deviceManager.importTracks(urls)
+            }
+        }
+    }
+
 }
 
 // MARK: - 设备选择视图

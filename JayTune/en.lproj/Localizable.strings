@@ -21,7 +21,7 @@
 "device.found_count" = "Found %d device(s)";
 "device.multiple_found" = "Found %d devices, please select";
 "device.no_music" = "No music files found";
-"device.scanning" = "Scanning music library (%@ directories)...";
+"device.scanning" = "Scanning music library (%d directories)…";
 "device.scan_progress" = "Scanned %1$d/%2$d directories, %3$d tracks";
 "device.scan_complete" = "%1$@ · %2$d tracks";
 
@@ -30,6 +30,7 @@
 "toolbar.import" = "Import";
 "toolbar.import_failed" = "Import failed";
 "toolbar.refresh" = "Refresh Device";
+"toolbar.cancel_scan" = "Cancel Scan";
 "toolbar.export" = "Export";
 "toolbar.export_help" = "Export selected tracks to computer";
 "toolbar.delete" = "Delete";
@@ -37,7 +38,7 @@
 
 /* === Content Area === */
 "content.no_playlists" = "No Playlists";
-"album.track_count" = "%@ tracks";
+"album.track_count" = "%d tracks";
 "album.back_to_list" = "Back to Albums";
 "artist.back_to_list" = "Back to Artists";
 "common.back" = "Back";
